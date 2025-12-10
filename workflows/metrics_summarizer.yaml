@@ -1,0 +1,35 @@
+id: metrics_summarizer
+namespace: sre
+description: "Fetch and summarize Prometheus metrics"
+tasks:
+  - id: cpu_usage
+    type: io.kestra.plugin.prometheus.Query
+    url: http://prometheus:9090
+    query: avg(rate(container_cpu_usage_seconds_total[5m]))
+
+  - id: memory_usage
+    type: io.kestra.plugin.prometheus.Query
+    url: http://prometheus:9090
+    query: avg(container_memory_usage_bytes)
+
+  - id: error_rate
+    type: io.kestra.plugin.prometheus.Query
+    url: http://prometheus:9090
+    query: sum(rate(http_server_errors_total[5m]))
+
+  - id: latency
+    type: io.kestra.plugin.prometheus.Query
+    url: http://prometheus:9090
+    query: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))
+
+  - id: format
+    type: io.kestra.plugin.core.template.Template
+    content: |
+      CPU: {{ outputs.cpu_usage.result }}
+      Memory: {{ outputs.memory_usage.result }}
+      Errors: {{ outputs.error_rate.result }}
+      Latency: {{ outputs.latency.result }}
+
+  - id: encode
+    type: io.kestra.plugin.core.transform.JsonEncode
+    value: "{{ outputs.format.rendered }}"

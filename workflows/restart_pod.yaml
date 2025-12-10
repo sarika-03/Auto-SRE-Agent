@@ -1,0 +1,26 @@
+id: restart_pod
+namespace: sre
+description: "Restart a specific pod in Kubernetes"
+tasks:
+  - id: get_pods
+    type: io.kestra.plugin.kubernetes.pods.List
+    namespace: default
+    labelSelectors:
+      app: backend
+
+  - id: pick_pod
+    type: io.kestra.plugin.core.flow.Select
+    from: "{{ outputs.get_pods.pods }}"
+    expression: "{{ value.metadata.name }}"
+
+  - id: delete_pod
+    type: io.kestra.plugin.kubernetes.pods.Delete
+    name: "{{ outputs.pick_pod.value }}"
+    namespace: default
+    propagationPolicy: Foreground
+
+  - id: wait_recreate
+    type: io.kestra.plugin.kubernetes.pods.Wait
+    name: "{{ outputs.pick_pod.value }}"
+    namespace: default
+    timeout: PT30S

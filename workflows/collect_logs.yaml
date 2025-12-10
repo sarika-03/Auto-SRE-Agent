@@ -1,0 +1,15 @@
+id: collect_logs
+namespace: sre
+description: "Collect logs from Loki for the last 1 hour"
+tasks:
+  - id: fetch_logs
+    type: io.kestra.plugin.loki.QueryRange
+    url: http://loki:3100
+    query: '{app="backend"}'
+    start: "{{ now() - duration('PT1H') }}"
+    end: "{{ now() }}"
+    step: 60
+
+  - id: format_logs
+    type: io.kestra.plugin.core.transform.JsonEncode
+    value: "{{ outputs.fetch_logs.data }}"
